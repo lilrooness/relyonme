@@ -1,6 +1,6 @@
 -module(relyonme_websocket_handler).
 
--export([init/2, websocket_init/1, websocket_handle/3, websocket_info/2]).
+-export([init/2, websocket_init/1, websocket_handle/2, websocket_info/2]).
 
 -record(state, {
     game_room = undefined
@@ -35,7 +35,7 @@ websocket_init(State) ->
         game_room = GameRoomPid
     }}.
 
-websocket_handle({text, Data}, _Req, #state{game_room = GameRoomPid} = State) ->
+websocket_handle({text, Data}, #state{game_room = GameRoomPid} = State) ->
     ClientCommand = jiffy:decode(Data, [return_maps]),
     case maps:get(<<"type">>, ClientCommand) of
         <<"key_command">> ->
@@ -50,9 +50,9 @@ websocket_handle({text, Data}, _Req, #state{game_room = GameRoomPid} = State) ->
     end,
     {ok, State};
 
-websocket_handle(Message, Req, State) ->
+websocket_handle(Message, State) ->
 
-    {reply, Message, Req, State}.
+    {reply, Message, State}.
 
 websocket_info({update_active_pos, {X, Y}}, State) ->
     {reply, {text, construct_message(position_update, {X, Y})}, State};

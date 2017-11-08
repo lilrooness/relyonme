@@ -8,6 +8,8 @@
 -define(WORLD_WIDTH, 200).
 -define(WORLD_HEIGHT, 200).
 
+-define(PLAYER_SPEED, 1).
+
 -define(UPDATE_TIME, 17).
 
 -export([
@@ -80,35 +82,36 @@ handle_cast({join_room, PlayerConnection}, #state{player_2 = undefined, ready = 
     {noreply, State#state{player_2 = Player2}};
 
 handle_cast({key_command, {PlayerConnection, {<<"key_down">>, Key}}}, #state{ready = true} = State) ->
-    maybe_change_active_player_from_connection(fun(Player) ->
+    NewState = maybe_change_active_player_from_connection(fun(Player) ->
         #player{client_keys_down = ClientKeysDown} = Player,
         Player#player{client_keys_down = ClientKeysDown#{
             Key := true
         }}
-    end, PlayerConnection, State);
+    end, PlayerConnection, State),
+    {noreply, NewState};
 
 handle_cast({key_command, {PlayerConnection, {<<"key_up">>, Key}}}, #state{ready = true} = State) ->
-    maybe_change_active_player_from_connection(fun(Player) ->
+    NewState = maybe_change_active_player_from_connection(fun(Player) ->
         #player{client_keys_down = ClientKeysDown} = Player,
         Player#player{client_keys_down = ClientKeysDown#{
             Key := false
         }}
-    end, PlayerConnection, State);
+    end, PlayerConnection, State),
+    {noreply, NewState};
 
-handle_cast({update_position, {PlayerConnection, X, Y}}, #state{ready = true} = State) ->
-    maybe_change_active_player_from_connection(fun(Player) ->
-        Player#player{xpos = X, ypos = Y}
-    end, PlayerConnection, State);
-    % if
-    %     ((State#state.player_1)#player.mode == active) and ((State#state.player_1)#player.connection == PlayerConnection) ->
-    %         Player1_update = State#state.player_1,
-    %         {noreply, State#state{player_1 = Player1_update#player{xpos = X, ypos = Y}}};
-    %     ((State#state.player_2)#player.mode == active) and ((State#state.player_2)#player.connection == PlayerConnection) ->
-    %         Player2_update = State#state.player_2,
-    %         {noreply, State#state{player_2 = Player2_update#player{xpos = X, ypos = Y}}};
-    %     true ->
-    %         {noreply, State}
-    % end;
+handle_cast(update_position, #state{ready = true} = State) ->
+    NewState = change_active_player(fun(Player) ->
+        ClientKeys = maps:keys(Player#player.client_keys_down),
+        lists:foldl(fun(Key, AccPlayer) -> 
+            case maps:get(Key, AccPlayer#player.client_keys_down) of
+                true ->
+                    _UpdatedPlayer = process_keydown_for_player(Key, AccPlayer);
+                false ->
+                    AccPlayer
+            end
+        end, Player, ClientKeys)
+    end, State),
+    {noreply, NewState};
 
 
 handle_cast(_Message, State) ->
@@ -119,6 +122,7 @@ handle_info(ready, State) ->
     {noreply, State#state{ready = true}};
 
 handle_info(update, State) ->
+    gen_server:cast(self(), update_position),
     ActivePlayer = get_active_player(State),
     Player1 = State#state.player_1,
     Player1#player.connection ! {update_active_pos, {ActivePlayer#player.xpos, ActivePlayer#player.ypos}},
@@ -144,7 +148,7 @@ join_room(Pid, PlayerConnection) ->
     gen_server:cast(Pid, {join_room, PlayerConnection}).
 
 client_key_command(Pid, PlayerConnection, KeyCommand) ->
-    gen_sever:cast(Pid, {key_command, PlayerConnection, KeyCommand}).
+    gen_server:cast(Pid, {key_command, {PlayerConnection, KeyCommand}}).
 
 get_active_player(State) ->
     if
@@ -164,4 +168,32 @@ maybe_change_active_player_from_connection(Fun, PlayerConnection, State) ->
             State#state{player_2 = UpdatedPlayer2};
         true ->
             State
+    end.
+
+change_active_player(Fun, State) ->
+    if
+        ((State#state.player_1)#player.mode == active) ->
+            UpdatedPlayer1 = Fun(State#state.player_1),
+            State#state{player_1 = UpdatedPlayer1};
+        ((State#state.player_2)#player.mode == active) ->
+            UpdatedPlayer2 = Fun(State#state.player_2),
+            State#state{player_2 = UpdatedPlayer2};
+        true ->
+            State
+    end.
+
+process_keydown_for_player(Key, Player) ->
+    case Key of
+        <<"w">> ->
+            Y = Player#player.ypos,
+            Player#player{ypos = Y - ?PLAYER_SPEED};
+        <<"a">> ->
+            X = Player#player.xpos,
+            Player#player{xpos = X - ?PLAYER_SPEED};
+        <<"s">> ->
+            Y = Player#player.ypos,
+            Player#player{ypos = Y + ?PLAYER_SPEED};
+        <<"d">> ->
+            X = Player#player.xpos,
+            Player#player{xpos = X + ?PLAYER_SPEED}
     end.

@@ -1,0 +1,28 @@
+{
+	"title": "client_command",
+	"type": "object",
+	"properties": {
+		"type": {
+			"description": "command type",
+			"enum": ["key_command"],
+			"required": true
+		},
+
+		"key_command": {
+			"description": "key command",
+			"key": {
+				"enum": ["w", "a", "s", "d"]
+			},
+
+			"command": {
+				"enum": ["key_up", "key_down"]
+			}
+		}
+	},
+
+	"oneOf": [
+		{
+			"required": ["type", "key_command"]
+		}
+	]
+}
