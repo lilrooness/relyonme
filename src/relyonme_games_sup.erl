@@ -3,7 +3,11 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, childspec/1]).
+-export([
+	start_link/0,
+	childspec/1,
+	list_current_games/0
+	]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -16,6 +20,9 @@ start_link() ->
 
 init([]) ->
 	{ok, { {one_for_all, 0, 1}, []} }.
+
+list_current_games() ->
+	[{GameNumber, relyonme_game_room:get_room_joinable(Pid)} || {GameNumber, Pid,_,_} <- supervisor:which_children(?MODULE)].
 
 
 childspec(PlayerConnection) ->

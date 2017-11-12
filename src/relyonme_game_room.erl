@@ -36,7 +36,8 @@
         <<"w">> => false,
         <<"a">> => false,
         <<"s">> => false,
-        <<"d">> => false
+        <<"d">> => false,
+        <<"-">> => false
     }
 }).
 
@@ -44,19 +45,22 @@
     room_number = undefined,
     player_1 = undefined,
     player_2 = undefined,
-    ready = false
+    ready = false,
+    enemy_sup = undefined
 }).
 
 start_link(RoomNumber, PlayerConnection) ->
     gen_server:start_link(?MODULE, [RoomNumber, PlayerConnection], []).
 
 init([RoomNumber, PlayerConnection]) ->
+    EnemySup = relyonme_enemy_sup:start_link(),
     {ok, #state{
         player_1 = #player{
             connection = PlayerConnection,
             mode = ?FIRST_JOIN_MODE
         },
-        room_number = RoomNumber
+        room_number = RoomNumber,
+        enemy_sup = EnemySup
     }}.
 
 handle_call(get_room_number, _From, #state{room_number = RoomNumber} = State) ->
@@ -195,5 +199,7 @@ process_keydown_for_player(Key, Player) ->
             Player#player{ypos = Y + ?PLAYER_SPEED};
         <<"d">> ->
             X = Player#player.xpos,
-            Player#player{xpos = X + ?PLAYER_SPEED}
+            Player#player{xpos = X + ?PLAYER_SPEED};
+        _ ->
+            Player
     end.

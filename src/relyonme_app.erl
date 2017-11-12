@@ -18,7 +18,8 @@ start(_StartType, _StartArgs) ->
 	Dispatch = cowboy_router:compile([
 		{'_', [
 			{"/relyonme/[...]", cowboy_static, {priv_dir, relyonme, "client"}},
-			{"/ws", relyonme_websocket_handler, []}
+			{"/ws", relyonme_websocket_handler, []},
+			{"/list_games", relyonme_http_handler, []}
 		]}
 		% {'_', []}
 	]),
