@@ -103,7 +103,7 @@ handle_cast({key_command, {PlayerConnection, {<<"key_up">>, Key}}}, #state{ready
     end, PlayerConnection, State),
     {noreply, NewState};
 
-handle_cast(update_position, #state{ready = true} = State) ->
+handle_cast(update_player_position, #state{ready = true} = State) ->
     NewState = change_active_player(fun(Player) ->
         ClientKeys = maps:keys(Player#player.client_keys_down),
         lists:foldl(fun(Key, AccPlayer) -> 
@@ -126,13 +126,19 @@ handle_info(ready, State) ->
     {noreply, State#state{ready = true}};
 
 handle_info(update, State) ->
-    gen_server:cast(self(), update_position),
-    ActivePlayer = get_active_player(State),
+    gen_server:cast(self(), update_player_position),
+    ActivePlayer = get_mode_player(State, active),
+    ObserverPlayer = get_mode_player(State, observe),
     Player1 = State#state.player_1,
-    Player1#player.connection ! {update_active_pos, {ActivePlayer#player.xpos, ActivePlayer#player.ypos}},
+    Player1#player.connection ! {position_update, {ActivePlayer#player.xpos, ActivePlayer#player.ypos}},
 
     Player2 = State#state.player_2,
-    Player2#player.connection ! {update_active_pos, {ActivePlayer#player.xpos, ActivePlayer#player.ypos}},
+    Player2#player.connection ! {position_update, {ActivePlayer#player.xpos, ActivePlayer#player.ypos}},
+
+    ObserverPlayer#player.connection ! {
+        enemy_position_update, 
+        relyonme_enemy_sup:update_get_enemy_positions(State#state.enemy_sup)
+    },
     erlang:send_after(?UPDATE_TIME, self(), update),
     {noreply, State};
 
@@ -154,11 +160,11 @@ join_room(Pid, PlayerConnection) ->
 client_key_command(Pid, PlayerConnection, KeyCommand) ->
     gen_server:cast(Pid, {key_command, {PlayerConnection, KeyCommand}}).
 
-get_active_player(State) ->
+get_mode_player(State, Mode) ->
     if
-        (State#state.player_1)#player.mode == active ->
+        (State#state.player_1)#player.mode == Mode ->
             State#state.player_1;
-        (State#state.player_2)#player.mode == active ->
+        (State#state.player_2)#player.mode == Mode ->
             State#state.player_2
     end.
 

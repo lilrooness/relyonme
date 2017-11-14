@@ -51,11 +51,13 @@ websocket_handle({text, Data}, #state{game_room = GameRoomPid} = State) ->
     {ok, State};
 
 websocket_handle(Message, State) ->
-
     {reply, Message, State}.
 
-websocket_info({update_active_pos, {X, Y}}, State) ->
+websocket_info({position_update, {X, Y}}, State) ->
     {reply, {text, construct_message(position_update, {X, Y})}, State};
+
+websocket_info({enemy_position_update, EnemyPositions}, State) ->
+	{reply, {text, construct_message(enemy_position_update, EnemyPositions)}, State};
 
 websocket_info(_Info, State) ->
     {ok, State}.
@@ -73,4 +75,14 @@ construct_message(position_update, {X, Y}) ->
             x => X,
             y => Y
         }
-    }).
+    });
+
+construct_message(enemy_position_update, PositionData) ->
+	MapList = [#{
+		x => X,
+		y => Y
+	} || {X, Y} <- PositionData],
+	jiffy:encode(#{
+		type => enemy_position_update,
+		enemy_position_update => MapList
+	}).

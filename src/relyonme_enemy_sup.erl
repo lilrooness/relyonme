@@ -4,7 +4,7 @@
 
 -export([start_link/0, init/1]).
 
--export([new_enemy/2]).
+-export([new_enemy/2, update_get_enemy_positions/1]).
 
 start_link() ->
     supervisor:start_link(?MODULE, []).
@@ -21,3 +21,8 @@ init([]) ->
 
 new_enemy(Pid, StartingPos) ->
     supervisor:start_child(Pid, [StartingPos]).
+
+update_get_enemy_positions(Pid) ->
+    lists:map(fun(EnemyPid) ->
+        {_X, _Y} = gen_server:call(EnemyPid, update_get)
+    end, [Id || {Id, _, _, _} <- supervisor:which_children(Pid)]).
