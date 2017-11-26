@@ -58,8 +58,8 @@ init([RoomNumber, PlayerConnection]) ->
     {ok, EnemySupPid} = relyonme_enemy_sup:start_link(),
 
     lists:foreach(fun(_) -> 
-        X = ceil(rand:uniform() * ?WORLD_WIDTH),
-        Y = ceil(rand:uniform() * ?WORLD_HEIGHT),
+        X = rand:uniform() * ?WORLD_WIDTH,
+        Y = rand:uniform() * ?WORLD_HEIGHT,
         relyonme_enemy_sup:new_enemy(EnemySupPid, {X, Y})
     end, lists:seq(1, ?INITIAL_ENEMY_COUNT)),
     
