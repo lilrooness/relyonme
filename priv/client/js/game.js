@@ -12,6 +12,8 @@
 
     ctx.fillRect(0, 0, canvasW, canvasH);
 
+    var enemies = [];
+
     var socket = new WebSocket("ws://" + location.hostname+":"+location.port+"/ws");
 
     var player = {
@@ -34,9 +36,15 @@
 
     socket.onmessage = function(event) {
     	var data = JSON.parse(event.data);
-      console.log(data);
-      player.x = data.position_update.x;
-      player.y = data.position_update.y;
+      switch(data.type) {
+        case 'position_update': {
+          player.x = data.position_update.x;
+          player.y = data.position_update.y;
+        }break;
+        case 'enemy_position_update': {
+      		enemies = data.enemy_position_update;
+      	}
+      }
     };
 
     window.onkeydown = function(event) {
@@ -53,7 +61,6 @@
           "command": "key_down"
         },
       });
-      console.log(command);
       socket.send(command);
         // inputHandler.pressed_keys[inputHandler.key_codes[event.keyCode]] = true;
     };
@@ -72,7 +79,6 @@
           "command": "key_up"
         },
       });
-      console.log(command);
       socket.send(command);
         // inputHandler.pressed_keys[inputHandler.key_codes[event.keyCode]] = false;
     };
@@ -83,6 +89,10 @@
       ctx.fillRect(0, 0, canvasW, canvasH);
       ctx.fillStyle = "white";
       ctx.fillRect(player.x, player.y, 10, 10);
+      ctx.fillStyle = "red";
+      for(var i=0; i<enemies.length; i++) {
+        ctx.fillRect(enemies[i].x, enemies[i].y, 10, 10);
+      }
     }, 1000/60)
 
 })();

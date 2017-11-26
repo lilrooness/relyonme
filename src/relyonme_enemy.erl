@@ -10,7 +10,7 @@
     handle_info/2,
     terminate/2]).
 
--export([update_get/1]).
+-export([update_get/1, set_velocity/2]).
 
 -record(state, {
     position = {0, 0},
@@ -21,9 +21,10 @@
 start_link(StartingPos) ->
     gen_server:start_link(?MODULE, [StartingPos], []).
 
-init([StartingPos]) ->
+init([{X, Y} = _StartingPos]) ->
     {ok, #state{
-        position = StartingPos
+        position = {X, Y},
+        ttl = 5000
     }}.
 
 handle_call(update_get, _From, #state{ttl = 0} = State) ->
@@ -44,8 +45,7 @@ handle_call(update_get, _From, State) ->
         YPos + YVel
     },
     UpdatedState = State#state{
-        position = UpdatedPosition,
-        ttl = State#state.ttl - 1
+        position = UpdatedPosition
     },
     {reply, UpdatedState#state.position, UpdatedState};
 
@@ -73,3 +73,6 @@ terminate(_Reason, _State) ->
 
 update_get(Pid) ->
     gen_server:call(Pid, update_get).
+
+set_velocity(Pid, {X, Y}) ->
+    gen_server:cast(Pid, {set_velocity, X, Y}).

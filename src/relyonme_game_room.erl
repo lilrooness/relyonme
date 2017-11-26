@@ -5,6 +5,8 @@
 -define(FIRST_JOIN_MODE, active).
 -define(SECOND_JOIN_MODE, observe).
 
+-define(INITIAL_ENEMY_COUNT, 5).
+
 -define(WORLD_WIDTH, 200).
 -define(WORLD_HEIGHT, 200).
 
@@ -53,14 +55,21 @@ start_link(RoomNumber, PlayerConnection) ->
     gen_server:start_link(?MODULE, [RoomNumber, PlayerConnection], []).
 
 init([RoomNumber, PlayerConnection]) ->
-    EnemySup = relyonme_enemy_sup:start_link(),
+    {ok, EnemySupPid} = relyonme_enemy_sup:start_link(),
+
+    lists:foreach(fun(_) -> 
+        X = ceil(rand:uniform() * ?WORLD_WIDTH),
+        Y = ceil(rand:uniform() * ?WORLD_HEIGHT),
+        relyonme_enemy_sup:new_enemy(EnemySupPid, {X, Y})
+    end, lists:seq(1, ?INITIAL_ENEMY_COUNT)),
+    
     {ok, #state{
         player_1 = #player{
             connection = PlayerConnection,
             mode = ?FIRST_JOIN_MODE
         },
         room_number = RoomNumber,
-        enemy_sup = EnemySup
+        enemy_sup = EnemySupPid
     }}.
 
 handle_call(get_room_number, _From, #state{room_number = RoomNumber} = State) ->
@@ -135,10 +144,10 @@ handle_info(update, State) ->
     Player2 = State#state.player_2,
     Player2#player.connection ! {position_update, {ActivePlayer#player.xpos, ActivePlayer#player.ypos}},
 
-    ObserverPlayer#player.connection ! {
-        enemy_position_update, 
-        relyonme_enemy_sup:update_get_enemy_positions(State#state.enemy_sup)
-    },
+   ObserverPlayer#player.connection ! {
+       enemy_position_update, 
+       relyonme_enemy_sup:update_get_enemy_positions(State#state.enemy_sup)
+   },
     erlang:send_after(?UPDATE_TIME, self(), update),
     {noreply, State};
 
