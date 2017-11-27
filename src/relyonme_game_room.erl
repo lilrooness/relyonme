@@ -14,6 +14,8 @@
 
 -define(UPDATE_TIME, 17).
 
+-define(SIGHT_RANGE, 100).
+
 -export([
     start_link/2, 
     init/1,
@@ -27,6 +29,7 @@
     get_room_number/1,
     get_room_joinable/1,
     join_room/2,
+    client_click_command/3,
     client_key_command/3]).
 
 -record(player, {
@@ -48,7 +51,8 @@
     player_1 = undefined,
     player_2 = undefined,
     ready = false,
-    enemy_sup = undefined
+    enemy_sup = undefined,
+    vision_zones = []
 }).
 
 start_link(RoomNumber, PlayerConnection) ->
@@ -112,6 +116,20 @@ handle_cast({key_command, {PlayerConnection, {<<"key_up">>, Key}}}, #state{ready
     end, PlayerConnection, State),
     {noreply, NewState};
 
+handle_cast({click_command, PlayerConnection, ClickCommand}, #state{ready = true} = State) ->
+    PlayerObject = get_mode_player(State, observe),
+    case PlayerConnection == PlayerObject#player.connection of
+        true ->
+            #{
+                x := Xpos,
+                y := Ypos
+            } = ClickCommand,
+            NewState = new_vision_zone(State, Xpos, Ypos),
+            {noreply, NewState};
+        false ->
+            {noreply, State}
+    end;
+
 handle_cast(update_player_position, #state{ready = true} = State) ->
     NewState = change_active_player(fun(Player) ->
         ClientKeys = maps:keys(Player#player.client_keys_down),
@@ -143,11 +161,13 @@ handle_info(update, State) ->
 
     Player2 = State#state.player_2,
     Player2#player.connection ! {position_update, {ActivePlayer#player.xpos, ActivePlayer#player.ypos}},
-
-   ObserverPlayer#player.connection ! {
-       enemy_position_update, 
-       relyonme_enemy_sup:update_get_enemy_positions(State#state.enemy_sup)
-   },
+    
+    EnemyPositions = relyonme_enemy_sup:update_get_enemy_positions(State#state.enemy_sup),
+    ObserverPlayer#player.connection ! {
+        enemy_position_update, 
+        EnemyPositions
+    },
+    maybe_send_enemy_positions(ActivePlayer, EnemyPositions),
     erlang:send_after(?UPDATE_TIME, self(), update),
     {noreply, State};
 
@@ -168,6 +188,23 @@ join_room(Pid, PlayerConnection) ->
 
 client_key_command(Pid, PlayerConnection, KeyCommand) ->
     gen_server:cast(Pid, {key_command, {PlayerConnection, KeyCommand}}).
+
+client_click_command(Pid, PlayerConnection, ClickCommand) ->
+    gen_server:cast(Pid, {click_command, {PlayerConnection, ClickCommand}}).
+
+new_vision_zone(State, X, Y) ->
+    NewState = State#{
+        vision_zones => [#{x => X, y => Y}] ++ State#state.vision_zones
+    },
+    Player2 = State#state.player_2,
+    Player1 = State#state.player_1,
+    Message = {
+        vision_zone_update,
+        State#state.vision_zones
+    },
+    Player2#player.connection ! Message,
+    Player1#player.connection ! Message,
+    NewState.
 
 get_mode_player(State, Mode) ->
     if
@@ -218,3 +255,21 @@ process_keydown_for_player(Key, Player) ->
         _ ->
             Player
     end.
+
+maybe_send_enemy_positions(Player, EnemyPositions) ->
+    io:format("EnemyPositions: ~p", [EnemyPositions]),
+    lists:foreach(fun(E) -> 
+        case within_range(E, {Player#player.xpos, Player#player.ypos}, ?SIGHT_RANGE) of
+            true ->
+                Player#player.connection ! {
+                    enemy_position_update,
+                    EnemyPositions
+                };
+            _ ->
+                ok
+        end
+    end, EnemyPositions).
+
+within_range({Ax, Ay} = _A, {Bx, By} = _B, Range) ->
+    Dist = math:sqrt(math:pow(Ax-Bx, 2) + math:pow(Ay-By, 2)),
+    Dist =< Range.

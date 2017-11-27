@@ -45,6 +45,13 @@ websocket_handle({text, Data}, #state{game_room = GameRoomPid} = State) ->
                 <<"command">> := Command
             } = KeyCommand,
             relyonme_game_room:client_key_command(GameRoomPid, self(), {Command, Key});
+        <<"mouse_click">> ->
+            MouseClick = maps:get(<<"mouse_click">>, ClientCommand),
+            #{
+                <<"x">> := Xpos,
+                <<"y">> := Ypos
+            } = MouseClick,
+            relyonme_game_room:client_click_command(GameRoomPid, self(), #{x => Xpos, y => Ypos});
         _ ->
             ok
     end,
@@ -59,8 +66,19 @@ websocket_info({position_update, {X, Y}}, State) ->
 websocket_info({enemy_position_update, EnemyPositions}, State) ->
 	{reply, {text, construct_message(enemy_position_update, EnemyPositions)}, State};
 
+websocket_info({vision_zone_update, VisionZones}, State) ->
+    {reply, {text, construct_message(vision_zone_update, VisionZones)}, State};
+
 websocket_info(_Info, State) ->
     {ok, State}.
+
+construct_message(vision_zone_update, VisionZones) ->
+    jiffy:encode(#{
+        type => vision_zone_update,
+        vision_zone_update => #{
+            vision_zones => VisionZones
+        }
+    });
 
 construct_message(room_number, RoomNumber) ->
     jiffy:encode(#{
