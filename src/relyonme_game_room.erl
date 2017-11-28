@@ -167,7 +167,7 @@ handle_info(update, State) ->
         enemy_position_update, 
         EnemyPositions
     },
-    maybe_send_enemy_positions(ActivePlayer, EnemyPositions),
+    maybe_send_enemy_positions(ActivePlayer, EnemyPositions, State#state.vision_zones),
     erlang:send_after(?UPDATE_TIME, self(), update),
     {noreply, State};
 
@@ -256,7 +256,7 @@ process_keydown_for_player(Key, Player) ->
             Player
     end.
 
-maybe_send_enemy_positions(Player, EnemyPositions) ->
+maybe_send_enemy_positions(Player, EnemyPositions, VisionZones) ->
     io:format("EnemyPositions: ~p", [EnemyPositions]),
     lists:foreach(fun(E) -> 
         case within_range(E, {Player#player.xpos, Player#player.ypos}, ?SIGHT_RANGE) of
@@ -266,7 +266,17 @@ maybe_send_enemy_positions(Player, EnemyPositions) ->
                     EnemyPositions
                 };
             _ ->
-                ok
+                case lists:any(fun(Vz) ->
+                        #{x := Vx, y := Vy} = Vz,
+                        within_range(E, {Vx, Vy}, ?SIGHT_RANGE) end, VisionZones) of
+                    true ->
+                        Player#player.connection ! {
+                            enemy_position_update,
+                            EnemyPositions
+                        };
+                    _ ->
+                        ok
+                end
         end
     end, EnemyPositions).
 

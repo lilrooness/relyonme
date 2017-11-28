@@ -4,7 +4,7 @@
 	"properties": {
 		"type": {
 			"description": "command type",
-			"enum": ["key_command"],
+			"enum": ["key_command", "click_command"],
 			"required": true
 		},
 
@@ -17,12 +17,25 @@
 			"command": {
 				"enum": ["key_up", "key_down"]
 			}
-		}
+		},
+
+        "click_command": {
+            "description": "click command",
+            "x": {
+                "type": "integer"
+            },
+            "y": {
+                "type": "integer"
+            } 
+        }
 	},
 
 	"oneOf": [
 		{
 			"required": ["type", "key_command"]
+		},
+        {
+			"required": ["type", "click_command"]
 		}
 	]
 }
