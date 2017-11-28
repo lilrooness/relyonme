@@ -3,18 +3,38 @@
     var GAME_WORLD_WIDTH = 200;
     var GAME_WORLD_HEIGHT = 200;
 
-	  var canvas = document.getElementById("canvas");
+	var canvas = document.getElementById("canvas");
     canvas.width = document.body.clientWidth; //document.width is obsolete
   	canvas.height = document.body.clientHeight; //document.height is obsolete
   	canvasW = canvas.width;
   	canvasH = canvas.height
     var ctx = canvas.getContext("2d");
 
+    var mousex = 0;
+    var mousey = 0;
+
+    canvas.addEventListener('mousemove', function(mouseMoveEvent) {
+        var mousex = mouseMoveEvent.clientX;
+        var mousey = mouseMoveEvent.clientY;
+    });
+
+    var socket = new WebSocket("ws://" + location.hostname+":"+location.port+"/ws");
+    
+    document.body.onmousedown = function(event) {
+        var command = JSON.stringify({
+            "type": "click_command",
+            "mouse_click": {
+                "x": mousex,
+                "y": mousey
+            }
+        });
+        socket.send(command);
+    };
+
     ctx.fillRect(0, 0, canvasW, canvasH);
 
     var enemies = [];
 
-    var socket = new WebSocket("ws://" + location.hostname+":"+location.port+"/ws");
 
     var player = {
       x: 0,
@@ -81,8 +101,9 @@
       });
       socket.send(command);
         // inputHandler.pressed_keys[inputHandler.key_codes[event.keyCode]] = false;
-    };
+    }; 
 
+    
 
     window.setInterval(function() {
       ctx.fillStyle = "black";

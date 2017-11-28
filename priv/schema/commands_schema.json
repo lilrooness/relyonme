@@ -4,7 +4,7 @@
 	"properties": {
 		"type": {
 			"description": "command type",
-			"enum": ["key_command", "click_command"],
+			"enum": ["key_command", "mouse_click"],
 			"required": true
 		},
 
@@ -19,7 +19,7 @@
 			}
 		},
 
-        "click_command": {
+        "mouse_click": {
             "description": "click command",
             "x": {
                 "type": "integer"
@@ -35,7 +35,7 @@
 			"required": ["type", "key_command"]
 		},
         {
-			"required": ["type", "click_command"]
+			"required": ["type", "mouse_click"]
 		}
 	]
 }
