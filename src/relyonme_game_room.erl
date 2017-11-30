@@ -85,10 +85,7 @@ handle_call(get_joinable, _From, #state{ready = Ready} = State) ->
             {reply, false, State};
         false ->
             {reply, true, State}
-    end;
-
-handle_call(Message, _From, State) ->
-    {reply, Message, State}.
+    end.
 
 handle_cast({join_room, PlayerConnection}, #state{player_2 = undefined, ready = false} = State) ->
     Player2 = #player{
@@ -116,10 +113,11 @@ handle_cast({key_command, {PlayerConnection, {<<"key_up">>, Key}}}, #state{ready
     end, PlayerConnection, State),
     {noreply, NewState};
 
-handle_cast({click_command, PlayerConnection, ClickCommand}, #state{ready = true} = State) ->
+handle_cast({click_command, {PlayerConnection, ClickCommand}}, #state{ready = true} = State) ->
     PlayerObject = get_mode_player(State, observe),
     case PlayerConnection == PlayerObject#player.connection of
         true ->
+            io:format("VALID CLICK!!"),
             #{
                 x := Xpos,
                 y := Ypos
@@ -127,6 +125,7 @@ handle_cast({click_command, PlayerConnection, ClickCommand}, #state{ready = true
             NewState = new_vision_zone(State, Xpos, Ypos),
             {noreply, NewState};
         false ->
+            io:format("click from invalid player", []),
             {noreply, State}
     end;
 
@@ -142,11 +141,7 @@ handle_cast(update_player_position, #state{ready = true} = State) ->
             end
         end, Player, ClientKeys)
     end, State),
-    {noreply, NewState};
-
-
-handle_cast(_Message, State) ->
-    {noreply, State}.
+    {noreply, NewState}.
 
 handle_info(ready, State) ->
     self() ! update,
@@ -193,8 +188,8 @@ client_click_command(Pid, PlayerConnection, ClickCommand) ->
     gen_server:cast(Pid, {click_command, {PlayerConnection, ClickCommand}}).
 
 new_vision_zone(State, X, Y) ->
-    NewState = State#{
-        vision_zones => [#{x => X, y => Y}] ++ State#state.vision_zones
+    NewState = State#state{
+        vision_zones = [#{x => X, y => Y}] ++ State#state.vision_zones
     },
     Player2 = State#state.player_2,
     Player1 = State#state.player_1,
@@ -202,6 +197,7 @@ new_vision_zone(State, X, Y) ->
         vision_zone_update,
         State#state.vision_zones
     },
+    io:format("sending new vision zones ~p", [Message]),
     Player2#player.connection ! Message,
     Player1#player.connection ! Message,
     NewState.
@@ -257,7 +253,6 @@ process_keydown_for_player(Key, Player) ->
     end.
 
 maybe_send_enemy_positions(Player, EnemyPositions, VisionZones) ->
-    io:format("EnemyPositions: ~p", [EnemyPositions]),
     lists:foreach(fun(E) -> 
         case within_range(E, {Player#player.xpos, Player#player.ypos}, ?SIGHT_RANGE) of
             true ->

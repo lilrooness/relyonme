@@ -13,19 +13,15 @@
     var mousex = 0;
     var mousey = 0;
 
-    canvas.addEventListener('mousemove', function(mouseMoveEvent) {
-        var mousex = mouseMoveEvent.clientX;
-        var mousey = mouseMoveEvent.clientY;
-    });
-
     var socket = new WebSocket("ws://" + location.hostname+":"+location.port+"/ws");
     
     document.body.onmousedown = function(event) {
+        console.log("sending mouse click");
         var command = JSON.stringify({
-            "type": "click_command",
+            "type": "mouse_click",
             "mouse_click": {
-                "x": mousex,
-                "y": mousey
+                "x": event.clientX,
+                "y": event.clientY
             }
         });
         socket.send(command);
@@ -34,7 +30,7 @@
     ctx.fillRect(0, 0, canvasW, canvasH);
 
     var enemies = [];
-
+    var visionZones = [];
 
     var player = {
       x: 0,
@@ -63,7 +59,10 @@
         }break;
         case 'enemy_position_update': {
       		enemies = data.enemy_position_update;
-      	}
+      	}break;
+        case 'vision_zone_update': {
+            visionZones = data.vision_zone_update.vision_zones;
+        }
       }
     };
 
@@ -113,6 +112,15 @@
       ctx.fillStyle = "red";
       for(var i=0; i<enemies.length; i++) {
         ctx.fillRect(enemies[i].x, enemies[i].y, 10, 10);
+      }
+
+      ctx.strokeStyle = "red";
+      ctx.fillStyle = "white";
+      for(var i=0; i<visionZones.length; i++) {
+        ctx.fillRect(visionZones[i].x, visionZones[i].y, 5, 5);
+        ctx.beginPath();
+        ctx.arc(visionZones[i].x, visionZones[i].y, 100, 0, 2 * Math.PI, false);
+        ctx.stroke();
       }
     }, 1000/60)
 
