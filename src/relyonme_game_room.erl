@@ -14,7 +14,7 @@
 
 -define(UPDATE_TIME, 17).
 
--define(SIGHT_RANGE, 100).
+-define(SIGHT_RANGE, 30).
 
 -export([
     start_link/2, 
@@ -277,4 +277,4 @@ maybe_send_enemy_positions(Player, EnemyPositions, VisionZones) ->
 
 within_range({Ax, Ay} = _A, {Bx, By} = _B, Range) ->
     Dist = math:sqrt(math:pow(Ax-Bx, 2) + math:pow(Ay-By, 2)),
-    Dist =< Range.
+    Dist < Range.
