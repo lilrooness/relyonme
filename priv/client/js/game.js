@@ -15,13 +15,21 @@
 
     var socket = new WebSocket("ws://" + location.hostname+":"+location.port+"/ws");
     
-    document.body.onmousedown = function(event) {
-        console.log("sending mouse click");
+    var getMousePos = function(canvas, evt) {
+      var rect = canvas.getBoundingClientRect();
+      return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+      };
+    }
+
+    canvas.onmousedown = function(event) {
+        var mousePos = getMousePos(canvas, event);
         var command = JSON.stringify({
             "type": "mouse_click",
             "mouse_click": {
-                "x": event.clientX,
-                "y": event.clientY
+                "x": mousePos.x,
+                "y": mousePos.y
             }
         });
         socket.send(command);

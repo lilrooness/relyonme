@@ -85,7 +85,10 @@ handle_call(get_joinable, _From, #state{ready = Ready} = State) ->
             {reply, false, State};
         false ->
             {reply, true, State}
-    end.
+    end;
+
+handle_call(_, _From, State) ->
+    {reply, ok, State}.
 
 handle_cast({join_room, PlayerConnection}, #state{player_2 = undefined, ready = false} = State) ->
     Player2 = #player{
@@ -141,7 +144,10 @@ handle_cast(update_player_position, #state{ready = true} = State) ->
             end
         end, Player, ClientKeys)
     end, State),
-    {noreply, NewState}.
+    {noreply, NewState};
+
+handle_cast(_, State) ->
+    {noreply, State}.
 
 handle_info(ready, State) ->
     self() ! update,
@@ -195,7 +201,7 @@ new_vision_zone(State, X, Y) ->
     Player1 = State#state.player_1,
     Message = {
         vision_zone_update,
-        State#state.vision_zones
+        NewState#state.vision_zones
     },
     io:format("sending new vision zones ~p", [Message]),
     Player2#player.connection ! Message,
