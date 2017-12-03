@@ -120,7 +120,6 @@ handle_cast({click_command, {PlayerConnection, ClickCommand}}, #state{ready = tr
     PlayerObject = get_mode_player(State, observe),
     case PlayerConnection == PlayerObject#player.connection of
         true ->
-            io:format("VALID CLICK!!"),
             #{
                 x := Xpos,
                 y := Ypos
@@ -128,7 +127,6 @@ handle_cast({click_command, {PlayerConnection, ClickCommand}}, #state{ready = tr
             NewState = new_vision_zone(State, Xpos, Ypos),
             {noreply, NewState};
         false ->
-            io:format("click from invalid player", []),
             {noreply, State}
     end;
 
@@ -203,7 +201,6 @@ new_vision_zone(State, X, Y) ->
         vision_zone_update,
         NewState#state.vision_zones
     },
-    io:format("sending new vision zones ~p", [Message]),
     Player2#player.connection ! Message,
     Player1#player.connection ! Message,
     NewState.
