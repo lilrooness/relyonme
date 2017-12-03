@@ -127,7 +127,7 @@
       for(var i=0; i<visionZones.length; i++) {
         ctx.fillRect(visionZones[i].x, visionZones[i].y, 5, 5);
         ctx.beginPath();
-        ctx.arc(visionZones[i].x, visionZones[i].y, 100, 0, 2 * Math.PI, false);
+        ctx.arc(visionZones[i].x, visionZones[i].y, 30, 0, 2 * Math.PI, false);
         ctx.stroke();
       }
     }, 1000/60)

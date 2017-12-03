@@ -259,28 +259,27 @@ process_keydown_for_player(Key, Player) ->
     end.
 
 maybe_send_enemy_positions(Player, EnemyPositions, VisionZones) ->
-    lists:foreach(fun(E) -> 
+    Positions = lists:filter(fun(E) ->
         case within_range(E, {Player#player.xpos, Player#player.ypos}, ?SIGHT_RANGE) of
             true ->
-                Player#player.connection ! {
-                    enemy_position_update,
-                    EnemyPositions
-                };
+                true;
             _ ->
                 case lists:any(fun(Vz) ->
                         #{x := Vx, y := Vy} = Vz,
-                        within_range(E, {Vx, Vy}, ?SIGHT_RANGE) end, VisionZones) of
+                        within_range(E, {Vx, Vy}, ?SIGHT_RANGE)
+                    end, VisionZones) of
                     true ->
-                        Player#player.connection ! {
-                            enemy_position_update,
-                            EnemyPositions
-                        };
+                        true;
                     _ ->
-                        ok
+                        false
                 end
         end
-    end, EnemyPositions).
+    end, EnemyPositions),
+    Player#player.connection ! {
+        enemy_position_update,
+        Positions
+    }.
 
 within_range({Ax, Ay} = _A, {Bx, By} = _B, Range) ->
-    Dist = math:sqrt(math:pow(Ax-Bx, 2) + math:pow(Ay-By, 2)),
-    Dist < Range.
+    Dist = math:pow(Ax-Bx, 2) + math:pow(Ay-By, 2),
+    Dist < math:pow(Range, 2).
