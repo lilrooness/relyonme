@@ -102,7 +102,7 @@ handle_cast({key_command, {PlayerConnection, {<<"key_down">>, Key}}}, #state{rea
     NewState = maybe_change_active_player_from_connection(fun(Player) ->
         #player{client_keys_down = ClientKeysDown} = Player,
         Player#player{client_keys_down = ClientKeysDown#{
-            Key := true
+            Key => true
         }}
     end, PlayerConnection, State),
     {noreply, NewState};
@@ -133,7 +133,7 @@ handle_cast({click_command, {PlayerConnection, ClickCommand}}, #state{ready = tr
 handle_cast(update_player_position, #state{ready = true} = State) ->
     NewState = change_active_player(fun(Player) ->
         ClientKeys = maps:keys(Player#player.client_keys_down),
-        lists:foldl(fun(Key, AccPlayer) -> 
+        lists:foldl(fun(Key, AccPlayer) ->
             case maps:get(Key, AccPlayer#player.client_keys_down) of
                 true ->
                     _UpdatedPlayer = process_keydown_for_player(Key, AccPlayer);
