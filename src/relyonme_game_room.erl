@@ -102,7 +102,7 @@ handle_cast({key_command, {PlayerConnection, {<<"key_down">>, Key}}}, #state{rea
     NewState = maybe_change_active_player_from_connection(fun(Player) ->
         #player{client_keys_down = ClientKeysDown} = Player,
         Player#player{client_keys_down = ClientKeysDown#{
-            Key := true
+            Key => true
         }}
     end, PlayerConnection, State),
     {noreply, NewState};
