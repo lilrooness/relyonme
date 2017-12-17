@@ -52,7 +52,8 @@
     player_2 = undefined,
     ready = false,
     enemy_sup = undefined,
-    vision_zones = []
+    vision_zones = [],
+    map = undefined
 }).
 
 start_link(RoomNumber, PlayerConnection) ->
@@ -66,6 +67,11 @@ init([RoomNumber, PlayerConnection]) ->
         Y = rand:uniform() * ?WORLD_HEIGHT,
         relyonme_enemy_sup:new_enemy(EnemySupPid, {X, Y})
     end, lists:seq(1, ?INITIAL_ENEMY_COUNT)),
+
+    {ok, #{
+        <<"worlds">> := [Map | _]
+    }} = application:get_env(relyonme, world_data),
+
     
     {ok, #state{
         player_1 = #player{
@@ -73,7 +79,8 @@ init([RoomNumber, PlayerConnection]) ->
             mode = ?FIRST_JOIN_MODE
         },
         room_number = RoomNumber,
-        enemy_sup = EnemySupPid
+        enemy_sup = EnemySupPid,
+	map = Map
     }}.
 
 handle_call(get_room_number, _From, #state{room_number = RoomNumber} = State) ->
@@ -96,6 +103,14 @@ handle_cast({join_room, PlayerConnection}, #state{player_2 = undefined, ready = 
         mode = ?SECOND_JOIN_MODE
     },
     self() ! ready,
+    WorldsData = application:get_env(relyonme, world_data),
+    PlayerConnection ! {maps_data, WorldsData},
+    #state{
+        player_1 = #player{
+            connection = Player1Connection
+        }
+    } = State,
+    Player1Connection ! {maps_data, WorldsData},
     {noreply, State#state{player_2 = Player2}};
 
 handle_cast({key_command, {PlayerConnection, {<<"key_down">>, Key}}}, #state{ready = true} = State) ->

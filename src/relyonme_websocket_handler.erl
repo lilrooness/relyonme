@@ -3,7 +3,8 @@
 -export([init/2, websocket_init/1, websocket_handle/2, websocket_info/2]).
 
 -record(state, {
-    game_room = undefined
+    game_room = undefined,
+    map_data = undefined
     }).
 
 init(Req, _State) ->
@@ -62,6 +63,11 @@ websocket_handle(Message, State) ->
 
 websocket_info({position_update, {X, Y}}, State) ->
     {reply, {text, construct_message(position_update, {X, Y})}, State};
+
+websocket_info({map_data, MapData}, State) ->
+    {ok, State#state{
+        map_data = MapData
+    }};
 
 websocket_info({enemy_position_update, EnemyPositions}, State) ->
 	{reply, {text, construct_message(enemy_position_update, EnemyPositions)}, State};
