@@ -27,6 +27,9 @@ start(_StartType, _StartArgs) ->
 		[{port, 8080}],
 		#{env => #{dispatch => Dispatch}}
 	),
+    {ok, WorldData} = file:read_file("priv/maps/worlds.json"),
+    WorldsMap = jiffy:decode(WorldData, [return_maps]),
+    application:set_env(relyonme, world_data, WorldsMap),
     relyonme_sup:start_link().
 
 %%--------------------------------------------------------------------

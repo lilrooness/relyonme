@@ -162,10 +162,11 @@ handle_info(update, State) ->
     Player2#player.connection ! {position_update, {ActivePlayer#player.xpos, ActivePlayer#player.ypos}},
     
     EnemyPositions = relyonme_enemy_sup:update_get_enemy_positions(State#state.enemy_sup),
-    ObserverPlayer#player.connection ! {
-        enemy_position_update, 
-        EnemyPositions
-    },
+    %ObserverPlayer#player.connection ! {
+    %    enemy_position_update, 
+    %    EnemyPositions
+    %},
+    maybe_send_enemy_positions(ObserverPlayer, EnemyPositions, State#state.vision_zones),
     maybe_send_enemy_positions(ActivePlayer, EnemyPositions, State#state.vision_zones),
     erlang:send_after(?UPDATE_TIME, self(), update),
     {noreply, State};
